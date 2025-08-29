@@ -42,6 +42,9 @@ cd contracts && clarinet console
 - `/components/` - Reusable UI components
 - `/public/` - Static assets
 
+## Snapshots
+!/Users/rahulnegi/Desktop/Screenshot 2025-08-29 at 2.54.19 PM.png
+
 ## 🎯 Demo Flow
 
 1. Start local blockchain
