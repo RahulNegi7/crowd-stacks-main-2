@@ -114,9 +114,7 @@ export default function CreatePage() {
       if (formData.deadline) {
         const deadlineDate = new Date(formData.deadline)
         const now = new Date()
-        const daysUntilDeadline = Math.ceil((deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-        // Approximate: 144 blocks per day
-        deadlineBlock = Math.floor(Date.now() / 1000) + daysUntilDeadline * 144
+        deadlineBlock = Math.floor(Date.now() / 1000)
       }
 
       // Call the create-campaign contract function

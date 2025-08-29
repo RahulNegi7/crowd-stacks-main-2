@@ -1,19 +1,22 @@
- "use client"
+"use client"
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import {
   ArrowLeft,
   Settings,
+  Wallet,
   Users,
   Target,
+  Calendar,
   TrendingUp,
   BarChart3,
   X,
+  RefreshCcw,
   CheckCircle,
   AlertCircle,
-  LogIn,
-} from "lucide-react"
+  LogIn
+} from 'lucide-react'
 import {
   callReadOnlyFunction,
   cvToJSON,
@@ -25,12 +28,12 @@ import { StacksTestnet } from '@stacks/network'
 import { UserSession, AppConfig, showConnect, openContractCall } from '@stacks/connect'
 
 // Contract configuration
-const CONTRACT_ADDRESS = "ST1RVN5QPTET1RV9BJQX35JQWJFYG8YNHQEY5QN24" // Replace with your deployed address
-const CONTRACT_NAME = "crowdfunding"
+const CONTRACT_ADDRESS = 'ST1RVN5QPTET1RV9BJQX35JQWJFYG8YNHQEY5QN24' // Replace with your deployed address
+const CONTRACT_NAME = 'crowdfunding'
 const network = new StacksTestnet()
 
 // Wallet configuration
-const appConfig = new AppConfig(["store_write", "publish_data"])
+const appConfig = new AppConfig(['store_write', 'publish_data'])
 const userSession = new UserSession({ appConfig })
 
 // TypeScript interfaces
@@ -64,8 +67,8 @@ const parseCampaign = (json: any, id: number): Campaign => {
   const d = json?.value?.value ?? {}
   return {
     id,
-    title: jStr(d.title) || `Campaign ${id}`,
-    description: jStr(d.description) || `Campaign ${id}`,
+    title: jStr(d.title) || 'Campaign ${id}',
+    description: jStr(d.description) || 'Campaign ${id}',
     goal: jNum(d.goal) / 1_000_000,
     total: jNum(d.total) / 1_000_000,
     deadline: jNum(d.deadline),
@@ -77,6 +80,30 @@ const parseCampaign = (json: any, id: number): Campaign => {
   }
 }
 
+// Present a readable deadline from either unix-seconds or block height
+const formatDeadlineDisplay = (deadline: number, currentBlockHeight: number | null): string => {
+  if (!deadline || deadline <= 0) return 'No deadline'
+  const unixThreshold = 1_000_000_000
+  try {
+    if (deadline > unixThreshold) {
+      // Looks like Unix seconds
+      const dt = new Date(deadline * 1000)
+      return dt.toLocaleString()
+    }
+    // Looks like a block height value
+    if (currentBlockHeight && deadline >= currentBlockHeight) {
+      const blocksRemaining = deadline - currentBlockHeight
+      const estMs = blocksRemaining * 10 * 60 * 1000 // ~10 min per block
+      const est = new Date(Date.now() + estMs)
+      return `${est.toLocaleString()} (est, block ${deadline})`
+    }
+    // Fallback: show the block number when we cannot estimate a wall time
+    return `Block #${deadline}`
+  } catch {
+    return `Block #${deadline}`
+  }
+}
+
 export default function AdminPage() {
   const [user, setUser] = useState<any>(null)
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
@@ -84,10 +111,11 @@ export default function AdminPage() {
     totalRaised: 0,
     totalContributors: 0,
     activeCampaigns: 0,
-    totalCampaigns: 0,
+    totalCampaigns: 0
   })
   const [loading, setLoading] = useState(true)
   const [closingCampaign, setClosingCampaign] = useState<number | null>(null)
+  const [currentBlockHeight, setCurrentBlockHeight] = useState<number | null>(null)
 
   // Check wallet connection on load
   useEffect(() => {
@@ -101,6 +129,21 @@ export default function AdminPage() {
   useEffect(() => {
     const interval = setInterval(fetchAllData, 30000)
     return () => clearInterval(interval)
+  }, [])
+
+  // Fetch current chain height (client-side) to estimate block-based deadlines
+  useEffect(() => {
+    const fetchTip = async () => {
+      try {
+        const res = await fetch('https://api.testnet.hiro.so/v2/info')
+        const info = await res.json()
+        if (info?.stacks_tip_height) setCurrentBlockHeight(Number(info.stacks_tip_height))
+      } catch (e) {
+        // Non-fatal; we will show the block number instead
+        console.warn('Failed to fetch tip height', e)
+      }
+    }
+    fetchTip()
   }, [])
 
   // Connect wallet
@@ -164,7 +207,7 @@ export default function AdminPage() {
         totalRaised: Number(cvToJSON(totalSTX).value) / 1_000_000,
         totalContributors: Number(cvToJSON(totalContributors).value),
         activeCampaigns: Number(cvToJSON(activeCampaigns).value),
-        totalCampaigns: Number(cvToJSON(campaignCount).value),
+        totalCampaigns: Number(cvToJSON(campaignCount).value)
       })
 
       // Fetch all campaigns
@@ -176,11 +219,11 @@ export default function AdminPage() {
           callReadOnlyFunction({
             contractAddress: CONTRACT_ADDRESS,
             contractName: CONTRACT_NAME,
-            functionName: "get-campaign",
+            functionName: 'get-campaign',
             functionArgs: [uintCV(i)],
             network,
             senderAddress: CONTRACT_ADDRESS,
-          }),
+          })
         )
       }
 
@@ -198,8 +241,9 @@ export default function AdminPage() {
         .filter((campaign): campaign is Campaign => campaign !== null)
 
       setCampaigns(fetchedCampaigns)
+
     } catch (error) {
-      console.error("Error fetching blockchain data:", error)
+      console.error('Error fetching blockchain data:', error)
     } finally {
       setLoading(false)
     }
@@ -213,49 +257,49 @@ export default function AdminPage() {
     return new Promise<void>((resolve, reject) => {
       const interval = setInterval(async () => {
         try {
-          const response = await fetch(`https://api.testnet.hiro.so/extended/v1/tx/${txId}`)
-          const data = await response.json()
+          const response = await fetch(`https://api.testnet.hiro.so/extended/v1/tx/${txId}`);
+          const data = await response.json();
 
-          if (data.tx_status === "success" || data.tx_status === "failed") {
-            clearInterval(interval)
-            resolve()
+          if (data.tx_status === 'success' || data.tx_status === 'failed') {
+            clearInterval(interval);
+            resolve();
           } else if (retries >= maxRetries) {
-            clearInterval(interval)
-            reject(new Error("Transaction timed out"))
+            clearInterval(interval);
+            reject(new Error('Transaction timed out'));
           }
-          retries++
+          retries++;
         } catch (error) {
-          clearInterval(interval)
-          reject(error)
+          clearInterval(interval);
+          reject(error);
         }
-      }, 5000) // Check every 5 seconds
-    })
-  }
+      }, 5000); // Check every 5 seconds
+    });
+  };
 
   const handleCloseCampaign = async (campaignId: number) => {
     if (!user) {
-      alert("Please connect your wallet first")
-      return
+      alert('Please connect your wallet first');
+      return;
     }
 
-    const campaign = campaigns.find((c) => c.id === campaignId)
-    if (!campaign) return
+    const campaign = campaigns.find(c => c.id === campaignId);
+    if (!campaign) return;
 
     if (campaign.owner !== user.profile.stxAddress.testnet) {
-      alert("Only the campaign owner can finalize this campaign")
-      return
+      alert('Only the campaign owner can finalize this campaign');
+      return;
     }
 
     // 1. Check if the campaign was successful
-    const goalReached = campaign.total >= campaign.goal
+    const goalReached = campaign.total >= campaign.goal;
 
     // 2. Set the correct function name based on the result
-    const functionName = goalReached ? "withdraw-funds" : "finalize-failure"
+    const functionName = goalReached ? 'withdraw-funds' : 'finalize-failure';
 
     // 3. Create a dynamic confirmation message
     const confirmationMessage = goalReached
       ? `This campaign has reached its goal. Are you sure you want to withdraw the funds and close it?`
-      : `This campaign has not reached its goal. Are you sure you want to close it so contributors can get refunds?`
+      : `This campaign has not reached its goal. Are you sure you want to close it so contributors can get refunds?`;
 
     // 4. Show the correct message and stop if the user cancels
     if (!confirm(confirmationMessage)) {
@@ -316,8 +360,10 @@ export default function AdminPage() {
   };
 
   // Get user's campaigns
-  const userCampaigns = user ? campaigns.filter((c) => c.owner === user.profile.stxAddress.testnet) : []
-  const otherCampaigns = user ? campaigns.filter((c) => c.owner !== user.profile.stxAddress.testnet) : []
+  const userCampaigns = user ? campaigns.filter(c => c.owner === user.profile.stxAddress.testnet) : []
+  const userActiveCampaigns = userCampaigns.filter(c => c.active)
+  const userClosedCampaigns = userCampaigns.filter(c => !c.active)
+  const otherCampaigns = user ? campaigns.filter(c => c.owner !== user.profile.stxAddress.testnet) : []
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-neutral-950 to-black text-neutral-100">
@@ -412,7 +458,7 @@ export default function AdminPage() {
           <>
             {/* User's Campaigns */}
             <section className="mb-12">
-              <h2 className="text-3xl font-bold text-neutral-100 mb-6">Your Campaigns ({userCampaigns.length})</h2>
+              <h2 className="text-3xl font-bold text-neutral-100 mb-6">Your Campaigns ({userActiveCampaigns.length})</h2>
 
               {userCampaigns.length === 0 ? (
                 <div className="backdrop-blur-md bg-neutral-800/40 rounded-xl p-8 text-center border border-neutral-700">
@@ -426,7 +472,7 @@ export default function AdminPage() {
                 </div>
               ) : (
                 <div className="grid md:grid-cols-2 gap-6">
-                  {userCampaigns.map((campaign) => {
+                  {userActiveCampaigns.map((campaign) => {
                     const progress = campaign.goal > 0 ? (campaign.total / campaign.goal) * 100 : 0
                     const isClosing = closingCampaign === campaign.id
 
@@ -450,17 +496,42 @@ export default function AdminPage() {
                               </span>
                               <span className="text-xs text-neutral-400">ID: {campaign.id}</span>
                             </div>
+                            {campaign.active && (
+                              <div className="mt-2 text-xs text-gray-300">
+                                <span className="opacity-80">Deadline:</span> {formatDeadlineDisplay(campaign.deadline, currentBlockHeight)}
+                              </div>
+                            )}
                           </div>
 
                           {campaign.active && (
-                            <button
-                              onClick={() => handleCloseCampaign(campaign.id)}
-                              disabled={isClosing}
-                              className="flex items-center space-x-2 bg-neutral-700 hover:bg-neutral-600 disabled:bg-neutral-600 border border-violet-500/30 px-3 py-2 rounded-lg text-sm transition-colors"
-                            >
-                              <X size={14} />
-                              <span>{isClosing ? "Closing..." : "Close"}</span>
-                            </button>
+                            campaign.successful && !campaign.withdrawn ? (
+                              <button
+                                onClick={() => handleCloseCampaign(campaign.id)}
+                                disabled={isClosing}
+                                className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 px-3 py-2 rounded-lg text-sm transition-colors"
+                              >
+                                <Wallet size={14} />
+                                <span>{isClosing ? 'Withdrawing...' : 'Withdraw Funds'}</span>
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleCloseCampaign(campaign.id)}
+                                disabled={isClosing}
+                                className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm transition-colors disabled:bg-gray-600 
+                                  ${campaign.total > 0 ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-red-600 hover:bg-red-700'}`}
+                              >
+                                {campaign.total > 0 ? (
+                                  <RefreshCcw size={14} />
+                                ) : (
+                                  <X size={14} />
+                                )}
+                                <span>
+                                  {isClosing
+                                    ? (campaign.total > 0 ? 'Processing...' : 'Closing...')
+                                    : (campaign.total > 0 ? 'Refund' : 'Close')}
+                                </span>
+                              </button>
+                            )
                           )}
                         </div>
 
@@ -472,9 +543,8 @@ export default function AdminPage() {
 
                           <div className="w-full bg-neutral-800 rounded-full h-3">
                             <div
-                              className={`h-3 rounded-full transition-all ${
-                                progress >= 100 ? "bg-violet-500" : "bg-indigo-500"
-                              }`}
+                              className={`h-3 rounded-full transition-all ${progress >= 100 ? 'bg-green-500' : 'bg-gradient-to-r from-blue-400 to-purple-400'
+                                }`}
                               style={{ width: `${Math.min(progress, 100)}%` }}
                             />
                           </div>
@@ -496,6 +566,52 @@ export default function AdminPage() {
                   })}
                 </div>
               )}
+
+              {userClosedCampaigns.length > 0 && (
+                <>
+                  <h3 className="text-xl font-semibold text-white mt-8 mb-3">Closed Campaigns ({userClosedCampaigns.length})</h3>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {userClosedCampaigns.map((campaign) => {
+                      const progress = campaign.goal > 0 ? (campaign.total / campaign.goal) * 100 : 0
+
+                      return (
+                        <div key={campaign.id} className="backdrop-blur-md bg-white/10 rounded-xl p-6 border border-white/20">
+                          <div className="flex items-start justify-between mb-4">
+                            <div>
+                              <h3 className="text-xl font-semibold text-white mb-2">{campaign.title}</h3>
+                              <p className="text-sm text-gray-300 mb-2">{campaign.description}</p>
+                              <p className="text-xs text-gray-400 mb-4">Owner: {campaign.owner}</p>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-xs px-2 py-1 rounded bg-gray-600 text-gray-300">Closed</span>
+                                <span className="text-xs text-gray-400">ID: {campaign.id}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-3">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-400">Progress</span>
+                              <span className="text-white">{progress.toFixed(1)}%</span>
+                            </div>
+
+                            <div className="w-full bg-gray-700 rounded-full h-3">
+                              <div
+                                className={`h-3 rounded-full transition-all ${progress >= 100 ? 'bg-green-500' : 'bg-gradient-to-r from-blue-400 to-purple-400'}`}
+                                style={{ width: `${Math.min(progress, 100)}%` }}
+                              />
+                            </div>
+
+                            <div className="flex justify-between text-sm text-gray-400">
+                              <span>{campaign.total.toFixed(1)} STX raised</span>
+                              <span>{campaign.goal.toFixed(1)} STX goal</span>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
             </section>
 
             {/* All Other Campaigns */}
@@ -515,9 +631,9 @@ export default function AdminPage() {
                         <p className="text-xs text-neutral-400 mb-2">Owner: {campaign.owner.slice(0, 8)}...</p>
 
                         <div className="space-y-2">
-                          <div className="w-full bg-neutral-800 rounded-full h-2">
+                          <div className="w-full bg-gray-700 rounded-full h-2">
                             <div
-                              className="bg-violet-500 h-2 rounded-full transition-all"
+                              className="bg-gradient-to-r from-blue-400 to-purple-400 h-2 rounded-full transition-all"
                               style={{ width: `${Math.min(progress, 100)}%` }}
                             />
                           </div>
@@ -532,6 +648,11 @@ export default function AdminPage() {
                               {campaign.active ? "Active" : "Closed"}
                             </span>
                           </div>
+                          {campaign.active && (
+                            <div className="text-xs text-gray-300">
+                              <span className="opacity-80">Deadline:</span> {formatDeadlineDisplay(campaign.deadline, currentBlockHeight)}
+                            </div>
+                          )}
                         </div>
                       </div>
                     )

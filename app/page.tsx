@@ -38,6 +38,7 @@ interface Campaign {
   deadline: number
   owner: string
   active: boolean
+  blocksRemaining?: number
 }
 
 interface GlobalStats {
@@ -69,6 +70,30 @@ const parseCampaign = (json: any, id: number): Campaign => {
     owner: d.owner?.value || "",
     active: jBool(d.active),
   }
+}
+
+// Countdown helpers (match admin behavior)
+const formatMinutes = (totalMin: number) => {
+  if (totalMin <= 0) return "Deadline passed"
+  const d = Math.floor(totalMin / 1440)
+  const h = Math.floor((totalMin % 1440) / 60)
+  const m = Math.floor(totalMin % 60)
+  const parts: string[] = []
+  if (d > 0) parts.push(`${d}d`)
+  if (h > 0 || d > 0) parts.push(`${h}h`)
+  parts.push(`${m}m`)
+  return parts.join(" ") + " left"
+}
+
+const countdownFor = (c: Campaign): string => {
+  if (!c.deadline || c.deadline <= 0) return "No deadline"
+  const unixThreshold = 1_000_000_000
+  if (c.deadline > unixThreshold) {
+    const secsLeft = Math.max(0, c.deadline - Math.floor(Date.now() / 1000))
+    return formatMinutes(Math.floor(secsLeft / 60))
+  }
+  const br = typeof c.blocksRemaining === 'number' ? c.blocksRemaining : -1
+  return formatMinutes(br * 10)
 }
 
 // Tooltip component
@@ -118,8 +143,11 @@ export default function HomePage() {
   })
   const [loading, setLoading] = useState<boolean>(true)
 
+  // Derived: only show active campaigns in the main app
+  const visibleCampaigns: Campaign[] = campaigns.filter((c) => c.active)
+
   // Current campaign for display
-  const currentCampaign: Campaign = campaigns[selectedCampaign] || {
+  const currentCampaign: Campaign = visibleCampaigns[selectedCampaign] || {
     id: 0,
     title: "No campaigns yet",
     description: "Create the first campaign to get started!",
@@ -129,6 +157,13 @@ export default function HomePage() {
     owner: "",
     active: false,
   }
+
+  // Keep selected index valid when active list changes
+  useEffect(() => {
+    if (selectedCampaign >= visibleCampaigns.length) {
+      setSelectedCampaign(0)
+    }
+  }, [visibleCampaigns.length])
 
   // Calculate progress
   const progressPercentage = currentCampaign.goal > 0 ? (currentCampaign.total / currentCampaign.goal) * 100 : 0
@@ -267,7 +302,32 @@ export default function HomePage() {
         })
         .filter((campaign): campaign is Campaign => campaign !== null)
 
-      setCampaigns(fetchedCampaigns)
+      // Enrich with blocks-remaining for countdowns
+      const statusPromises = fetchedCampaigns.map((c) =>
+        callReadOnlyFunction({
+          contractAddress: CONTRACT_ADDRESS,
+          contractName: CONTRACT_NAME,
+          functionName: 'get-campaign-status',
+          functionArgs: [uintCV(c.id)],
+          network,
+          senderAddress: CONTRACT_ADDRESS,
+        })
+      )
+      const statusResults = await Promise.all(statusPromises)
+      const withStatus = fetchedCampaigns.map((c, i) => {
+        try {
+          const json: any = cvToJSON(statusResults[i])
+          const tuple = json?.value?.value ?? json?.value ?? {}
+          const node = tuple['blocks-remaining']
+          const raw = typeof node?.value !== 'undefined' ? node.value : node
+          const br = Number(raw)
+          return { ...c, blocksRemaining: Number.isFinite(br) ? br : 0 }
+        } catch {
+          return { ...c }
+        }
+      })
+
+      setCampaigns(withStatus)
     } catch (error) {
       console.error("Error fetching blockchain data:", error)
     } finally {
@@ -408,7 +468,7 @@ export default function HomePage() {
         </section>
 
         {/* Campaign Selector */}
-        {campaigns.length > 1 && (
+        {visibleCampaigns.length > 1 && (
           <section className="mb-8">
             <div className="flex justify-center">
               <select
@@ -416,7 +476,7 @@ export default function HomePage() {
                 onChange={(e) => setSelectedCampaign(Number(e.target.value))}
                 className="bg-neutral-800 text-neutral-100 px-4 py-2 rounded-lg border border-neutral-600 focus:border-violet-400"
               >
-                {campaigns.map((campaign, index) => (
+                {visibleCampaigns.map((campaign, index) => (
                   <option key={index} value={index}>
                     Campaign {index}: {campaign.title}
                   </option>
@@ -471,7 +531,7 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div className="grid grid-cols-3 gap-4 text-center">
                     <div>
                       <div className="flex items-center justify-center space-x-2 text-violet-400">
                         <Target size={20} />
@@ -496,6 +556,9 @@ export default function HomePage() {
                         </span>
                       </div>
                       <p className="text-neutral-400 text-sm">Status</p>
+                    </div>
+                    <div className="text-sm text-neutral-300">
+                      <span className="opacity-80">Time left:</span> {countdownFor(currentCampaign)}
                     </div>
                   </div>
                 </div>
@@ -566,11 +629,11 @@ export default function HomePage() {
         </section>
 
         {/* All Campaigns List */}
-        {campaigns.length > 0 && (
+        {visibleCampaigns.length > 0 && (
           <section className="mb-16">
             <h2 className="text-3xl font-bold text-neutral-100 text-center mb-8">All Campaigns</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {campaigns.map((campaign, index) => {
+              {visibleCampaigns.map((campaign, index) => {
                 const campaignProgress = campaign.goal > 0 ? (campaign.total / campaign.goal) * 100 : 0
                 return (
                   <div
@@ -594,6 +657,9 @@ export default function HomePage() {
                           className="bg-violet-500 h-2 rounded-full transition-all"
                           style={{ width: `${Math.min(campaignProgress, 100)}%` }}
                         />
+                      </div>
+                      <div className="text-xs text-neutral-300">
+                        <span className="opacity-80">Time left:</span> {countdownFor(campaign)}
                       </div>
 
                       <div className="flex justify-between items-center">
