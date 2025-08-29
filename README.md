@@ -43,7 +43,7 @@ cd contracts && clarinet console
 - `/public/` - Static assets
 
 ## Snapshots
-!/Users/rahulnegi/Desktop/Screenshot 2025-08-29 at 2.54.19 PM.png
+
 
 ## 🎯 Demo Flow
 
