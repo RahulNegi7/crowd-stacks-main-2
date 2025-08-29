@@ -1,0 +1,10 @@
+[network]
+name = "testnet"
+# keep a safe fee rate; node will cap as needed
+deployment_fee_rate = 40
+
+[accounts.deployer]
+# 24-word TESTNET seed you control (NOT mainnet, NOT devnet)
+mnemonic = "piano old tent cart mail strong purpose rough injury bunker cart soul transfer patch chaos blur winter junior prison abuse major wealth taste more"
+derivation = "m/44'/5757'/0'/0/1"
+

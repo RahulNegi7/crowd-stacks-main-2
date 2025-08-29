@@ -1,0 +1,18 @@
+---
+id: 0
+name: Testnet deployment
+network: testnet
+stacks-node: "https://api.testnet.hiro.so"
+bitcoin-node: "http://blockstack:blockstacksystem@bitcoind.testnet.stacks.co:18332"
+plan:
+  batches:
+    - id: 0
+      transactions:
+        - contract-publish:
+            contract-name: crowdfundingv2
+            expected-sender: ST1RVN5QPTET1RV9BJQX35JQWJFYG8YNHQEY5QN24
+            cost: 459280
+            path: crowdfunding.clar
+            anchor-block-only: true
+            clarity-version: 2
+      epoch: "2.4"

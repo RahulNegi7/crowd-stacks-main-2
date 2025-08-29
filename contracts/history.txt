@@ -1,0 +1,75 @@
+#V2
+(contract-call? .crowdfunding contribute u100)
+(contract-call? .crowdfunding get-campaign-status)
+(contract-call? .crowdfunding get-total)
+(contract-call? .crowdfunding withdraw-funds)
+(contract-call? .crowdfunding get-contract-info)
+(contract-call? .crowdfunding get-campaign-status)
+(contract-call? .crowdfunding get-goal)
+(contract-call? .crowdfunding get-total)
+(contract-call? .crowdfunding get-deadline)
+(contract-call? .crowdfunding contribute u1000000000)
+(contract-call? .crowdfunding withdraw-funds)
+(contract-call? .crowdfunding get-contract-info)
+(contract-call? .crowdfunding get-total)
+(contract-call? .crowdfunding withdraw-funds)
+::set_tx_sender ST1SJDTESDN7X54YDH5D64R3BCB6A2AGZQ8YPD5
+::set_tx_sender 'ST1SJDTESDN7X54YDH5D64R3BCB6A2AGZQ8YPD5
+::set_tx_sender 'ST1SJDTESDN7X54YDH5D64R3BCB6A2AGZQ8YPD5'
+;; switch sender
+::set_tx_sender 'ST1SJDTESDN7X54YDH5D64R3BCB6A2AGZQ8YPD5
+;; contribute 2 STX (2_000_000 microstx)
+(contract-call? .crowdfunding contribute u2000000)
+;; verify contribution
+(contract-call? .crowdfunding get-contribution 'ST1SJDTESDN7X54YDH5D64R3BCB6A2AGZQ8YPD5)
+tx-sender
+::set_tx_sender 'ST1SJDTESDN7X54YDH5D64R3BCB6A2AGZQ8YPD5
+::set_tx_sender ST1SJDTESDN7X54YDH5D64R3BCB6A2AGZQ8YPD5
+tx-sender
+::set_tx_sender ST2CY5V39NHDPWSXMV9QDT3HC3GD6Q6XX4CFRK9AG
+::help
+::keywords
+tx-sponser?
+tx-sponser
+tx-sponsor?
+::functions
+::set_tx_sender ST1SJ3DTE5DN7X54YDH5D64R3BCB6A2AG2ZQ8YPD5
+tx-sender
+(contract-call? .crowdfunding contribute u2000000)
+;; Contributor A (2 STX)
+::set_tx_sender ST1SJ3DTE5DN7X54YDH5D64R3BCB6A2AG2ZQ8YPD5
+(contract-call? .crowdfunding contribute u2000000)
+(contract-call? .crowdfunding get-contribution 'ST1SJ3DTE5DN7X54YDH5D64R3BCB6A2AG2ZQ8YPD5)
+(contract-call? .crowdfunding contribute u1000000000)
+tx-sender
+;; contribute 2 STX
+(contract-call? 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.crowdfunding contribute u2000000)
+(contract-call? 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.crowdfunding get-contribution 'ST1SJ3DTE5DN7X54YDH5D64R3BCB6A2AG2ZQ8YPD5)
+(contract-call? .crowdfunding contribute u1000000000)
+(contract-call? create-campaign u1000000000 u500 "My awsome Project")
+(create-campaign u1000000000 u500 "My awsome Project")
+(contract-call? create-campaign u1000000000 u500 "My awsome Project")
+(contract-call? .create-campaign u1000000000 u500 "My awsome Project")
+(contract-call? .crowdfunding create-campaign u1000000000 u500 "My awsome Project")
+(contract-call? .crowdfunding contribute u1000000000 u0)
+(contract-call? .crowdfunding contribute u0 u1000000000 )
+(contract-call? .crowdfunding create-campaign u1000000000 u500 "My awsome Project")
+(contract-call? .crowdfunding contribute u0 u1000000000 )
+(contract-call? .crowdfunding create-campaign u1000000000 u500 "My awsome Project")
+(contract-call? .crowdfunding contribute u0 u1000000000 )
+(contract-call? .crowdfunding create-campaign u100000000 u1000 "Ooty")
+::exit
+exit
+(contract-call? .crowdfunding get-active-campaigns)
+(contract-call? .crowdfunding create-campaign u1000000000 u500 "My awsome")
+(contract-call? .crowdfunding get-active-campaigns)
+(contract-call? .crowd fundng get-campaigns)
+(contract-call? .crowd fundng get-campaigns(u1))
+(contract-call? .crowd fundng get-campaigns-count)
+(contract-call? .crowdfundng get-campaigns-count)
+(contract-call? .crowdfunding get-active-campaigns)
+(contract-call? .crowdfunding get-campaigns-count)
+(contract-call? .crowdfunding get-campaign-summary)
+(contract-call? .crowdfunding get-campaigns-summary)
+(contract-call? .crowdfunding get-campaign-status(u0))
+(contract-call? .crowdfunding create-campaign "My Test" "A description" u50000000 u500)
