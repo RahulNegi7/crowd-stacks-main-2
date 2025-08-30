@@ -1,8 +1,8 @@
-# Stacks Crowdfunding DApp 🚀
+# Stacks Crowdfunding DApp 
 
 A  decentralized crowdfunding platform built on Stacks blockchain.
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Prerequisites
 - Node.js 18+
