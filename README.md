@@ -58,5 +58,3 @@ cd contracts && clarinet console
 See `ABOUT.md` for detailed project information and technical architecture.
 
 ---
-
-Built for hackathons with ❤️
